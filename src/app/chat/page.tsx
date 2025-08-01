@@ -23,8 +23,6 @@ const initialQuestions = [
   "What tone would you like?"
 ]
 
-const OPENROUTER_API_KEY = "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"
-
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -42,7 +40,6 @@ export default function ChatPage() {
   const askedQuestionRef = useRef<Set<number>>(new Set())
 
   useEffect(() => {
-    // Auto-scroll
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
@@ -88,27 +85,23 @@ export default function ChatPage() {
 4. Unique selling point: ${updatedAnswers[3]}
 5. Tone: ${updatedAnswers[4]}`
 
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are an AI that helps users write professional business pitches. Return only the pitch in one paragraph. Then on a separate line, say: 'If you'd like to change or improve the pitch, feel free to type below.'"
-            },
-            { role: "user", content: prompt }
-          ]
+          message: `
+You are an AI that helps users write professional business pitches. Return only the pitch in one paragraph. Then on a separate line, say: 'If you'd like to change or improve the pitch, feel free to type below.'
+
+User prompt:
+${prompt}
+`
         })
       })
 
       const data = await res.json()
-      const aiText = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate the pitch."
+      const aiText = data.reply || "Sorry, I couldn't generate the pitch."
 
       const [pitch, ...rest] = aiText.split("\n").filter((line: string) => line.trim() !== "")
       const pitchMessage: Message = {
@@ -147,7 +140,6 @@ export default function ChatPage() {
           </p>
         </motion.div>
 
-        {/* Progress Indicator */}
         <div className="flex justify-center mt-6">
           <div className="flex items-center gap-2">
             {initialQuestions.map((_, index) => (
@@ -161,7 +153,6 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Chat Messages */}
         <div className="mt-10 max-w-3xl mx-auto space-y-6 h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-transparent">
           {messages.map((msg) => (
             <Card key={msg.id} className="shadow-md">
@@ -190,7 +181,6 @@ export default function ChatPage() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input Area (always shown) */}
         <div className="mt-8 flex items-center gap-4 max-w-3xl mx-auto">
           <input
             type="text"

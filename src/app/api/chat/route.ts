@@ -4,6 +4,12 @@ import axios from "axios"
 export async function POST(req: Request) {
   const { message } = await req.json()
 
+  const apiKey = process.env.OPENROUTER_API_KEY
+
+  if (!apiKey) {
+    return NextResponse.json({ error: "API key missing" }, { status: 500 })
+  }
+
   try {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -13,7 +19,7 @@ export async function POST(req: Request) {
       },
       {
         headers: {
-          Authorization: `Bearer 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`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
       }

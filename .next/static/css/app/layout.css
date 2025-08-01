@@ -625,6 +625,9 @@ video {
 .relative {
   position: relative;
 }
+.sticky {
+  position: sticky;
+}
 .inset-0 {
   inset: 0px;
 }
@@ -660,6 +663,9 @@ video {
 }
 .top-3\/4 {
   top: 75%;
+}
+.bottom-0 {
+  bottom: 0px;
 }
 .-z-10 {
   z-index: -10;
@@ -734,6 +740,9 @@ video {
 .mt-4 {
   margin-top: 1rem;
 }
+.ml-auto {
+  margin-left: auto;
+}
 .block {
   display: block;
 }
@@ -806,6 +815,9 @@ video {
 .h-\[60vh\] {
   height: 60vh;
 }
+.h-screen {
+  height: 100vh;
+}
 .max-h-screen {
   max-height: 100vh;
 }
@@ -865,6 +877,12 @@ video {
 }
 .max-w-none {
   max-width: none;
+}
+.max-w-xl {
+  max-width: 36rem;
+}
+.flex-1 {
+  flex: 1 1 0%;
 }
 .flex-shrink-0 {
   flex-shrink: 0;
@@ -990,6 +1008,12 @@ video {
   margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
 }
+.self-start {
+  align-self: flex-start;
+}
+.self-end {
+  align-self: flex-end;
+}
 .overflow-hidden {
   overflow: hidden;
 }
@@ -1004,6 +1028,9 @@ video {
 }
 .whitespace-pre-line {
   white-space: pre-line;
+}
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
 }
 .rounded-full {
   border-radius: 9999px;
@@ -1026,6 +1053,9 @@ video {
 .border-b {
   border-bottom-width: 1px;
 }
+.border-t {
+  border-top-width: 1px;
+}
 .border-none {
   border-style: none;
 }
@@ -1043,6 +1073,10 @@ video {
 }
 .border-primary\/20 {
   border-color: hsl(var(--primary) / 0.2);
+}
+.border-gray-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(229 231 235 / var(--tw-border-opacity, 1));
 }
 .bg-background {
   background-color: hsl(var(--background));
@@ -1094,6 +1128,18 @@ video {
 }
 .bg-white\/20 {
   background-color: rgb(255 255 255 / 0.2);
+}
+.bg-blue-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
+}
+.bg-blue-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
+}
+.bg-gray-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 250 251 / var(--tw-bg-opacity, 1));
 }
 .bg-gradient-to-br {
   background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
@@ -1211,6 +1257,9 @@ video {
 .p-8 {
   padding: 2rem;
 }
+.p-3 {
+  padding: 0.75rem;
+}
 .px-3 {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
@@ -1242,6 +1291,10 @@ video {
 .py-6 {
   padding-top: 1.5rem;
   padding-bottom: 1.5rem;
+}
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 .pb-20 {
   padding-bottom: 5rem;
@@ -1381,6 +1434,10 @@ video {
 }
 .text-white\/80 {
   color: rgb(255 255 255 / 0.8);
+}
+.text-gray-600 {
+  --tw-text-opacity: 1;
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
 }
 .underline-offset-4 {
   text-underline-offset: 4px;
@@ -1597,6 +1654,11 @@ video {
 
 .hover\:bg-white\/90:hover {
   background-color: rgb(255 255 255 / 0.9);
+}
+
+.hover\:bg-blue-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(29 78 216 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:text-accent-foreground:hover {
