@@ -76,6 +76,7 @@ export default function ChatPage() {
     setInput("")
     setLoading(true)
 
+    // Last question answered
     if (currentQuestionIndex === initialQuestions.length - 1) {
       const prompt = `Please write a business pitch based on the following:
 1. Pitch type: ${updatedAnswers[0]}
@@ -90,7 +91,7 @@ export default function ChatPage() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          prompt: `
+          message: `
 You are an AI that helps users write professional business pitches. Return only the pitch in one paragraph. Then on a separate line, say: 'If you'd like to change or improve the pitch, feel free to type below.'
 
 User prompt:
@@ -144,7 +145,9 @@ ${prompt}
             {initialQuestions.map((_, index) => (
               <div
                 key={index}
-                className={`h-2 w-8 rounded-full ${index <= currentQuestionIndex ? "bg-primary" : "bg-muted"}`}
+                className={`h-2 w-8 rounded-full ${
+                  index <= currentQuestionIndex ? "bg-primary" : "bg-muted"
+                }`}
               />
             ))}
           </div>
