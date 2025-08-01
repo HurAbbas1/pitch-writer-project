@@ -1,20 +1,12 @@
 'use client'
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useRef, useState } from "react"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { NavigationHeader } from "@/components/navigation-header"
 import { AnimatedBackground } from "@/components/animated-background"
-import { 
-  Send, 
-  Bot, 
-  User, 
-  Sparkles,
-  MessageCircle,
-  ArrowRight,
-  CheckCircle2
-} from "lucide-react"
+import { Send, Bot, User } from "lucide-react"
 
 type Message = {
   id: string
@@ -24,247 +16,194 @@ type Message = {
 }
 
 const initialQuestions = [
-  "What type of pitch are you creating? (elevator pitch, investor pitch, sales pitch, etc.)",
+  "What type of pitch are you creating?",
   "Who is your target audience?",
   "What problem does your product/service solve?",
   "What makes your solution unique?",
-  "What tone would you like? (professional, casual, enthusiastic, etc.)"
+  "What tone would you like?"
 ]
+
+const OPENROUTER_API_KEY = "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"
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
-      role: 'assistant',
-      content: "Hi! I'm your AI pitch writing assistant. I'll help you create a compelling pitch by asking you some questions. Let's start with the basics - what type of pitch are you looking to create?",
+      id: "welcome-1",
+      role: "assistant",
+      content: "Hi! I'm your AI Pitch Assistant. Ready to craft the perfect pitch?",
       timestamp: new Date()
     }
   ])
-  const [input, setInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
+  const [answers, setAnswers] = useState<string[]>([])
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [input, setInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement | null>(null)
+  const askedQuestionRef = useRef<Set<number>>(new Set())
 
-  const handleSend = () => {
+  useEffect(() => {
+    // Auto-scroll
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  useEffect(() => {
+    if (
+      currentQuestionIndex < initialQuestions.length &&
+      !askedQuestionRef.current.has(currentQuestionIndex)
+    ) {
+      const question = initialQuestions[currentQuestionIndex]
+      const questionMsg: Message = {
+        id: `q-${Date.now()}`,
+        role: "assistant",
+        content: question,
+        timestamp: new Date()
+      }
+      setMessages((prev) => [...prev, questionMsg])
+      askedQuestionRef.current.add(currentQuestionIndex)
+    }
+  }, [currentQuestionIndex])
+
+  const handleSend = async () => {
     if (!input.trim()) return
 
     const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
+      id: `${Date.now()}`,
+      role: "user",
+      content: input.trim(),
       timestamp: new Date()
     }
 
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-    setIsTyping(true)
+    const updatedAnswers = [...answers, input.trim()]
+    setMessages((prev) => [...prev, userMessage])
+    setAnswers(updatedAnswers)
+    setInput("")
+    setLoading(true)
 
-    // Simulate AI response
-    setTimeout(() => {
-      const nextStep = currentStep + 1
-      let aiResponse = ""
+    // Last question answered
+    if (currentQuestionIndex === initialQuestions.length - 1) {
+      const prompt = `Please write a business pitch based on the following:
+1. Pitch type: ${updatedAnswers[0]}
+2. Target audience: ${updatedAnswers[1]}
+3. Problem it solves: ${updatedAnswers[2]}
+4. Unique selling point: ${updatedAnswers[3]}
+5. Tone: ${updatedAnswers[4]}`
 
-      if (nextStep < initialQuestions.length) {
-        aiResponse = `Great! ${initialQuestions[nextStep]}`
-      } else {
-        aiResponse = "Perfect! I have all the information I need. Let me create your pitch for you. This will take just a moment..."
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an AI that helps users write professional business pitches. Return only the pitch in one paragraph. Then on a separate line, say: 'If you'd like to change or improve the pitch, feel free to type below.'"
+            },
+            { role: "user", content: prompt }
+          ]
+        })
+      })
+
+      const data = await res.json()
+      const aiText = data.choices?.[0]?.message?.content || "Sorry, I couldn't generate the pitch."
+
+      const [pitch, ...rest] = aiText.split("\n").filter((line: string) => line.trim() !== "")
+      const pitchMessage: Message = {
+        id: `${Date.now()}-pitch`,
+        role: "assistant",
+        content: pitch,
+        timestamp: new Date()
       }
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: aiResponse,
+      const followupMessage: Message = {
+        id: `${Date.now()}-followup`,
+        role: "assistant",
+        content: rest.join("\n") || "If you'd like to change or improve the pitch, feel free to type below.",
         timestamp: new Date()
       }
 
-      setMessages(prev => [...prev, aiMessage])
-      setCurrentStep(nextStep)
-      setIsTyping(false)
-
-      // If we've completed all questions, redirect to pitch output
-      if (nextStep >= initialQuestions.length) {
-        setTimeout(() => {
-          window.location.href = '/pitch-output'
-        }, 2000)
-      }
-    }, 1500)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+      setMessages((prev) => [...prev, pitchMessage, followupMessage])
     }
-  }
 
-  const handleQuickReply = (reply: string) => {
-    setInput(reply)
+    setCurrentQuestionIndex((prev) => Math.min(prev + 1, initialQuestions.length))
+    setLoading(false)
   }
-
-  const quickReplies = currentStep === 0 
-    ? ["Elevator Pitch", "Investor Pitch", "Sales Pitch", "Product Launch"]
-    : currentStep === 1
-    ? ["Investors", "Customers", "Partners", "General Audience"]
-    : currentStep === 4
-    ? ["Professional", "Enthusiastic", "Casual", "Confident"]
-    : []
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="relative min-h-screen bg-background text-foreground">
       <AnimatedBackground />
       <NavigationHeader />
-      
-      <div className="pt-20 pb-8 px-4">
-        <div className="container mx-auto max-w-4xl">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
-          >
-            <h1 className="text-4xl font-bold mb-4">
-              AI Pitch Assistant
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Let's create your perfect pitch together
-            </p>
-            
-            {/* Progress Indicator */}
-            <div className="flex justify-center mt-6">
-              <div className="flex items-center gap-2">
-                {initialQuestions.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      index < currentStep 
-                        ? 'bg-green-500' 
-                        : index === currentStep 
-                        ? 'bg-primary' 
-                        : 'bg-muted'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </motion.div>
+      <div className="container mx-auto pt-16 pb-12 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12 mt-4"
+        >
+          <h1 className="text-5xl font-bold text-primary mb-3">AI Pitch Assistant</h1>
+          <p className="text-lg text-muted-foreground">
+            Let's create your perfect pitch together
+          </p>
+        </motion.div>
 
-          {/* Chat Container */}
-          <Card className="h-[600px] flex flex-col">
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-primary" />
-                Chat with AI Assistant
-              </CardTitle>
-            </CardHeader>
+        {/* Progress Indicator */}
+        <div className="flex justify-center mt-6">
+          <div className="flex items-center gap-2">
+            {initialQuestions.map((_, index) => (
+              <div
+                key={index}
+                className={`h-2 w-8 rounded-full ${
+                  index <= currentQuestionIndex ? "bg-primary" : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
 
-            {/* Messages */}
-            <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
-              <AnimatePresence>
-                {messages.map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className={`flex gap-3 ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    {message.role === 'assistant' && (
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-4 h-4 text-primary" />
-                      </div>
-                    )}
-                    
-                    <div
-                      className={`max-w-[80%] p-4 rounded-lg ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                      <span className="text-xs opacity-70 mt-2 block">
-                        {message.timestamp.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
+        {/* Chat Messages */}
+        <div className="mt-10 max-w-3xl mx-auto space-y-6 h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-transparent">
+          {messages.map((msg) => (
+            <Card key={msg.id} className="shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base">
+                  {msg.role === "user" ? (
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" /> You
                     </div>
-
-                    {message.role === 'user' && (
-                      <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-4 h-4" />
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              {/* Typing Indicator */}
-              {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-3 justify-start"
-                >
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="bg-muted p-4 rounded-lg">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-pulse" />
-                      <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-pulse animate-delay-100" />
-                      <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-pulse animate-delay-200" />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-4 h-4" /> Assistant
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </CardContent>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {msg.content.split("\n").map((line, i) => (
+                  <p key={i} className="mb-2 whitespace-pre-line">
+                    {line}
+                  </p>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
 
-            {/* Quick Replies */}
-            {quickReplies.length > 0 && (
-              <div className="px-6 pb-4">
-                <p className="text-sm text-muted-foreground mb-2">Quick replies:</p>
-                <div className="flex flex-wrap gap-2">
-                  {quickReplies.map((reply) => (
-                    <Button
-                      key={reply}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickReply(reply)}
-                      className="text-xs"
-                    >
-                      {reply}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Input Area */}
-            <div className="border-t p-4">
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Type your response..."
-                    className="w-full p-3 border border-input rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                    rows={1}
-                    disabled={isTyping}
-                  />
-                </div>
-                <Button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isTyping}
-                  className="px-6"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </Card>
+        {/* Input Area (always shown) */}
+        <div className="mt-8 flex items-center gap-4 max-w-3xl mx-auto">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            className="flex-grow px-4 py-2 border rounded-md focus:outline-none"
+            placeholder={loading ? "Please wait..." : "Type your message"}
+            disabled={loading}
+          />
+          <Button onClick={handleSend} disabled={loading}>
+            <Send className="w-4 h-4 mr-2" /> {loading ? "Thinking..." : "Send"}
+          </Button>
         </div>
       </div>
     </div>
