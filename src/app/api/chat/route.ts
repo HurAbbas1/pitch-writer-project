@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   const apiKey = process.env.OPENROUTER_API_KEY
 
   if (!apiKey) {
+    console.error("❌ API key is missing.")
     return NextResponse.json({ error: "API key missing" }, { status: 500 })
   }
 
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
       }
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     const aiReply = response.data.choices[0].message.content
     return NextResponse.json({ reply: aiReply })
   } catch (err: any) {
+    console.error("❌ AI request failed:", err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
